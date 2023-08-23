@@ -1,0 +1,153 @@
+#Install kubeadmin kubelet 
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+apt-get update
+apt-get install -y apt-transport-https ca-certificates curl
+apt install wget curl vim git cron bash-completion kubelet kubeadm kubectl -y
+apt-mark hold kubelet kubeadm kubectl
+kubectl version --client && kubeadm version
+systemctl enable kubelet
+
+#Disable SWAP and enable bash-completion
+swapoff -a 
+(crontab -l 2>/dev/null; echo "@reboot /sbin/swapoff -a") | crontab - || true
+
+kubectl completion bash | sudo tee /etc/bash_completion.d/kubectl > /dev/null
+
+cat <<EOF >> /etc/bash.bashrc
+if ! shopt -oq posix; then
+  if [ -f /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+  elif [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+  fi
+fi
+EOF
+
+
+sudo tee ~/.inputrc<<EOF 
+"\e[5~": history-search-backward
+"\e[6~": history-search-forward
+EOF
+
+modprobe overlay
+modprobe br_netfilter
+
+sudo tee /etc/sysctl.d/kubernetes.conf<<EOF
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+EOF
+
+sudo tee /etc/modules-load.d/k8s.conf <<EOF
+overlay
+br_netfilter
+EOF
+
+sysctl --system
+
+#Install Container runtime
+#NOTE: You have to choose one runtime at a time
+
+#CRI-O
+OS="xUbuntu_22.04"
+VERSION=1.27
+echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
+curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/Release.key | apt-key add -
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | apt-key add -
+
+sudo apt update
+sudo apt install cri-o cri-o-runc
+sudo systemctl daemon-reload
+sudo systemctl restart crio
+sudo systemctl enable crio
+systemctl status crio
+
+
+#Containerd
+
+apt-get install -y curl gnupg2 software-properties-common apt-transport-https ca-certificates
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+apt update
+sudo apt install -y containerd.io
+
+mkdir -p /etc/containerd
+containerd config default > /etc/containerd/config.toml
+sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml
+sudo systemctl restart containerd
+sudo systemctl enable containerd
+systemctl status containerd
+
+#Initialize control plane
+#You can optionally pass Socket file
+kubeadm config images pull
+sudo kubeadm config images pull --cri-socket /run/containerd/containerd.sock
+
+sudo kubeadm init \
+  --pod-network-cidr=10.244.0.0/16 \
+  --cri-socket /var/run/crio/crio.sock \
+  --upload-certs \
+  --control-plane-endpoint=master
+  
+sudo kubeadm init \
+  --pod-network-cidr=192.168.0.0/16 \
+  --cri-socket /run/containerd/containerd.sock \
+  --upload-certs \
+  --control-plane-endpoint=master
+
+
+mkdir -p $HOME/.kube
+cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+chown $(id -u):$(id -g) $HOME/.kube/config
+
+kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+kubectl get po -n kube-system
+kubectl get --raw='/readyz?verbose'
+kubeadm token create --print-join-command
+
+#Install Kubernetes network plugin
+#Flannel
+wget https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml 
+kubectl apply -f kube-flannel.yml
+kubectl get pods -n kube-flannel
+#Calico
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
+ 
+####################################################################################
+
+#Dashboard
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+kubectl create serviceaccount -n kubernetes-dashboard admin-user
+cat <<EOF > ./rbac.yml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: admin-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: admin-user
+  namespace: kubernetes-dashboard
+EOF
+
+  
+kubectl apply -f rbac.yml
+kubectl -n kubernetes-dashboard create token admin-user
+kubectl port-forward -n kubernetes-dashboard service/kubernetes-dashboard --address 0.0.0.0 10443:443
+
+####################################################################################
+
+#Metrics Server
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+Or High Availability
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/high-availability-1.21+.yaml
+
+kubectl edit deploy -n kube-system metrics-server
+args:
+ - --kubelet-insecure-tls
+ - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
