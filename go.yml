@@ -5,7 +5,7 @@ metadata:
   labels:
     app: web
 spec:
-  replicas: 2
+  replicas: 5
   selector:
     matchLabels:
       app: web
@@ -16,20 +16,26 @@ spec:
     spec:
       containers:
         - name: web
-          image: yanar/goweb:98680632
+          image: yanar/goweb:10
+          volumeMounts:
+            - name: web-ps
+            mountPath: /var/www/storage
+      volumes:
+        -name: web-ps
+        persistentVolumeClaim:    
+          claimName: web-pvc
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: web
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: web
   ports:
     - port: 80
       targetPort: 80
-      nodePort: 30036
       protocol: TCP
 ---
 apiVersion: apps/v1
@@ -50,7 +56,7 @@ spec:
     spec:
       containers:
         - name: php
-          image: yanar/gophp:98680632
+          image: yanar/gophp:10
 ---
 apiVersion: v1
 kind: Service
@@ -67,12 +73,12 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: mysql-service
-  name: mysql-service
+    app: mysql
+  name: mysql
 spec:
-  externalName: gordsmyqldb.c1luoeubmchn.me-south-1.rds.amazonaws.com
+  externalName: apiv4.c1luoeubmchn.me-south-1.rds.amazonaws.com
   selector:
-    app: mysql-service
+    app: mysql
   type: ExternalName
 status:
   loadBalancer: {}
