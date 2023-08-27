@@ -15,15 +15,15 @@ spec:
         app: web
     spec:
       containers:
-        - name: web
-          image: yanar/goweb:10
-          volumeMounts:
-            - name: web-ps
+      - name: web
+        image: yanar/goweb:10
+        volumeMounts:
+          - name: web-ps
             mountPath: /var/www/storage
       volumes:
         -name: web-ps
         persistentVolumeClaim:    
-          claimName: web-pvc
+          claimName: ebs-claim
 ---
 apiVersion: v1
 kind: Service
