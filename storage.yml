@@ -1,19 +1,18 @@
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: web-pvc
-spec:
-  storageClassName: cloud-ssd
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 10Gi
----
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: cloud-ssd
-provisioner: kubernetes.io/aws-ebs
-parameters:
-  type: gp2
+  name: ebs-sc
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ebs-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ebs-sc
+  resources:
+    requests:
+      storage: 4Gi
