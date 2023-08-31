@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: asd
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: datastore
+  resources:
+    requests:
+      storage: 5Gi
