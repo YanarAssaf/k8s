@@ -64,7 +64,7 @@ metadata:
     app: mysql
   name: mysql
 spec:
-  externalName: k8s.c1luoeubmchn.me-south-1.rds.amazonaws.com
+  externalName: k8s.c1luoeubmchn.me-south-1.rds.amazonaws.com 
   selector:
     app: mysql
   type: ExternalName
