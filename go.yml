@@ -17,7 +17,7 @@ spec:
       volumes:
         - name: vol
           persistentVolumeClaim:    
-            claimName: asd
+            claimName: ebs-claim
       containers:
       - name: web
         image: yanar/web:116
@@ -57,7 +57,7 @@ spec:
       volumes:
         - name: vol
           persistentVolumeClaim:    
-            claimName: asd
+            claimName: ebs-claim
       containers:
       - name: php
         image: yanar/php:116
