@@ -20,7 +20,7 @@ spec:
             claimName: ebs-claim
       containers:
       - name: web
-        image: yanar/web:116
+        image: yanar/web:120
         volumeMounts:
           - name: vol
             mountPath: /var/www/html/public/storage
@@ -60,7 +60,7 @@ spec:
             claimName: ebs-claim
       containers:
       - name: php
-        image: yanar/php:116
+        image: yanar/php:120
         volumeMounts:
           - name: vol
             mountPath: /var/www/html/public/storage
