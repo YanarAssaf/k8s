@@ -20,7 +20,7 @@ spec:
             claimName: ebs-claim
       containers:
       - name: web
-        image: yanar/web:120
+        image: yanar/php-apache:1
         volumeMounts:
           - name: vol
             mountPath: /var/www/html/public/storage
@@ -37,43 +37,6 @@ spec:
     - port: 80
       targetPort: 80
       protocol: TCP
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: php
-  labels:
-    app: php
-spec:
-  replicas: 5
-  selector:
-    matchLabels:
-      app: php
-  template:
-    metadata:
-      labels:
-        app: php
-    spec:
-      volumes:
-        - name: vol
-          persistentVolumeClaim:    
-            claimName: ebs-claim
-      containers:
-      - name: php
-        image: yanar/php:120
-        volumeMounts:
-          - name: vol
-            mountPath: /var/www/html/public/storage
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: php
-spec:
-  selector:
-    app: php
-  ports:
-    - port: 9000
 ---
 apiVersion: v1
 kind: Service
