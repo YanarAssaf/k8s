@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  type: LoadBalancer
+  selector:
+    app: web
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: mysql
+  name: mysql
+spec:
+  externalName: k8s.c1luoeubmchn.me-south-1.rds.amazonaws.com 
+  selector:
+    app: mysql
+  type: ExternalName
+status:
+  loadBalancer: {}
