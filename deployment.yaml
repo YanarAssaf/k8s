@@ -1,26 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: web
-  labels:
-    app: web
-spec:
-  replicas: 5
-  selector:
-    matchLabels:
-      app: web
-  template:
-    metadata:
-      labels:
-        app: web
-    spec:
-      containers:
-      - name: web
-        image: yanar/nginx:1
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
   name: php
   labels:
     app: php
@@ -37,3 +17,23 @@ spec:
       containers:
       - name: php
         image: yanar/php:140
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  labels:
+    app: web
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+      - name: web
+        image: yanar/nginx:1
