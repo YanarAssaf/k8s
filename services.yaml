@@ -4,8 +4,6 @@ metadata:
   name: nlb
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: nlb
-    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:me-south-1:302203017279:certificate/03daaa7a-3984-4c15-bb1f-3a6ff04e9e5f"
-    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
 spec:
   selector:
     app: web
