@@ -16,4 +16,4 @@ spec:
     spec:
       containers:
       - name: web
-        image: yanar/php-apache:4
+        image: yanar/php-apache:1
